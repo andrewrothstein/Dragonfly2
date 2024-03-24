@@ -84,30 +84,19 @@ case "$1" in
     delete_container
     ;;
   *)
+    # start all of docker-compose defined service
+    COMPOSE=docker-compose
+    # use docker compose plugin
+    if docker compose version; then
+        COMPOSE="docker compose"
+    fi
     if [ -z "$1" ]; then
-        # start all of docker-compose defined service
-        COMPOSE=docker-compose
-        # use docker compose plugin
-        if docker compose version; then
-          COMPOSE="docker compose"
-        fi
-
-        $COMPOSE up -d
-
-        # docker-compose version 3 depends_on does not wait for redis and mysql to be “ready” before starting manager ...
-        # doc https://docs.docker.com/compose/compose-file/compose-file-v3/#depends_on
-        for i in $(seq 0 10); do
-          service_num=$($COMPOSE ps --services |wc -l)
-          ready_num=$($COMPOSE ps | grep healthy | wc -l)
-           if [ "$service_num" -eq "$ready_num" ]; then
-             break
-           fi
-           echo "wait for all service ready: $ready_num/$service_num,$i times check"
-           sleep 2
-        done
-
-        # print service list info
-        $COMPOSE ps
+        $COMPOSE -p dragonfly up -d
+        $COMPOSE -p dragonfly ps
+        exit 0
+    elif [ "$1" = "delete" ]; then
+        $COMPOSE -p dragonfly stop
+        $COMPOSE -p dragonfly rm -f
         exit 0
     fi
     echo "unknown argument: $1"
